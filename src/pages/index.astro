@@ -456,78 +456,78 @@ import Layout from '../layouts/Layout.astro';
 	}
 
 	function handleConnection(conn) {
-		// Register data/close listeners FIRST so they are always bound
-		conn.on('data', (data) => {
-			if (data.type === 'manifest') {
-				incomingManifest = data.files;
-				currentTransferIndex = 0;
-				receiveInfo.innerText = `Receiving ${incomingManifest.length} items`;
-				receivingStatus.innerText = 'Downloading...';
-				downloadContainer.innerHTML = '';
-				downloadContainer.classList.remove('hidden');
-				progressContainer.classList.remove('hidden');
-				conn.send({ type: 'pull-file', index: 0 });
-			} else if (data.type === 'pull-file') {
-				const idx = data.index;
-				if (idx < selectedFiles.length) {
-					sharingStatus.innerText = `Uploading: ${selectedFiles[idx].name}`;
-					progressBar.style.width = `${((idx) / selectedFiles.length) * 100}%`;
-					conn.send({
-						type: 'file-blob',
-						blob: selectedFiles[idx],
-						index: idx
-					});
-				} else {
-					sharingStatus.innerText = 'All files transferred successfully.';
-					progressBar.style.width = '100%';
+		const setupDataListeners = () => {
+			conn.on('data', (data) => {
+				if (data.type === 'manifest') {
+					incomingManifest = data.files;
+					currentTransferIndex = 0;
+					receiveInfo.innerText = `Receiving ${incomingManifest.length} items`;
+					receivingStatus.innerText = 'Downloading...';
+					downloadContainer.innerHTML = '';
+					downloadContainer.classList.remove('hidden');
+					progressContainer.classList.remove('hidden');
+					conn.send({ type: 'pull-file', index: 0 });
+				} else if (data.type === 'pull-file') {
+					const idx = data.index;
+					if (idx < selectedFiles.length) {
+						sharingStatus.innerText = `Uploading: ${selectedFiles[idx].name}`;
+						progressBar.style.width = `${((idx) / selectedFiles.length) * 100}%`;
+						conn.send({
+							type: 'file-blob',
+							blob: selectedFiles[idx],
+							index: idx
+						});
+					} else {
+						sharingStatus.innerText = 'All files transferred successfully.';
+						progressBar.style.width = '100%';
+					}
+				} else if (data.type === 'file-blob') {
+					const idx = data.index;
+					const meta = incomingManifest[idx];
+					const blob = new Blob([data.blob], { type: meta.type });
+					const url = URL.createObjectURL(blob);
+
+					const fileRow = document.createElement('div');
+					fileRow.className = 'flex items-center justify-between p-sm bg-canvas-soft border border-hairline rounded-md text-body-sm mb-xs';
+					fileRow.innerHTML = `
+						<span class="truncate max-w-[70%] font-mono text-ink">${meta.name}</span>
+						<a href="${url}" download="${meta.name.split('/').pop()}" class="text-primary font-bold hover:underline">Save</a>
+					`;
+					downloadContainer.appendChild(fileRow);
+					downloadContainer.scrollTop = downloadContainer.scrollHeight;
+
+					currentTransferIndex++;
+					const percent = (currentTransferIndex / incomingManifest.length) * 100;
+					progressBar.style.width = `${percent}%`;
+					receiveInfo.innerText = `Progress: ${currentTransferIndex}/${incomingManifest.length}`;
+					receivingStatus.innerText = percent === 100 ? 'Transfer Complete!' : 'Downloading...';
+
+					if (currentTransferIndex < incomingManifest.length) {
+						conn.send({ type: 'pull-file', index: currentTransferIndex });
+					}
+
+					const autoLink = document.createElement('a');
+					autoLink.href = url;
+					autoLink.download = meta.name.split('/').pop();
+					document.body.appendChild(autoLink);
+					autoLink.click();
+					document.body.removeChild(autoLink);
 				}
-			} else if (data.type === 'file-blob') {
-				const idx = data.index;
-				const meta = incomingManifest[idx];
-				const blob = new Blob([data.blob], { type: meta.type });
-				const url = URL.createObjectURL(blob);
+			});
 
-				const fileRow = document.createElement('div');
-				fileRow.className = 'flex items-center justify-between p-sm bg-canvas-soft border border-hairline rounded-md text-body-sm mb-xs';
-				fileRow.innerHTML = `
-					<span class="truncate max-w-[70%] font-mono text-ink">${meta.name}</span>
-					<a href="${url}" download="${meta.name.split('/').pop()}" class="text-primary font-bold hover:underline">Save</a>
-				`;
-				downloadContainer.appendChild(fileRow);
-				downloadContainer.scrollTop = downloadContainer.scrollHeight;
-
-				currentTransferIndex++;
-				const percent = (currentTransferIndex / incomingManifest.length) * 100;
-				progressBar.style.width = `${percent}%`;
-				receiveInfo.innerText = `Progress: ${currentTransferIndex}/${incomingManifest.length}`;
-				receivingStatus.innerText = percent === 100 ? 'Transfer Complete!' : 'Downloading...';
-
-				if (currentTransferIndex < incomingManifest.length) {
-					conn.send({ type: 'pull-file', index: currentTransferIndex });
+			conn.on('close', () => {
+				console.log('Connection closed');
+				if (incomingManifest.length > 0 && currentTransferIndex < incomingManifest.length) {
+					receivingStatus.innerText = 'Transfer interrupted.';
 				}
+			});
+		};
 
-				// Auto-trigger download
-				const autoLink = document.createElement('a');
-				autoLink.href = url;
-				autoLink.download = meta.name.split('/').pop();
-				document.body.appendChild(autoLink);
-				autoLink.click();
-				document.body.removeChild(autoLink);
-			}
-		});
-
-		conn.on('close', () => {
-			console.log('Connection closed');
-			if (incomingManifest.length > 0 && currentTransferIndex < incomingManifest.length) {
-				receivingStatus.innerText = 'Transfer interrupted.';
-			}
-		});
-
-		// Handle open - may already be open (race condition), so check conn.open first
-		const onOpen = () => {
+		const handleOpen = () => {
 			console.log('Connection opened');
+			setupDataListeners();
+			
 			if (selectedFiles.length > 0) {
-				// Sender side: send manifest to receiver
 				sharingStatus.innerText = 'Peer connected. Sending files...';
 				progressContainer.classList.remove('hidden');
 				conn.send({
@@ -539,16 +539,20 @@ import Layout from '../layouts/Layout.astro';
 					}))
 				});
 			} else {
-				// Receiver side: update status
 				receivingStatus.innerText = 'Connected. Waiting for files...';
 			}
 		};
 
-		if (conn.open) {
-			onOpen();
-		} else {
-			conn.on('open', onOpen);
-		}
+		// Try listening to open event first, this is the most reliable way in PeerJS
+		conn.on('open', handleOpen);
+		
+		// Fallback in case conn is already fully open and open event missed
+		setTimeout(() => {
+			if (conn.open && !conn._openHandled) {
+				conn._openHandled = true;
+				handleOpen();
+			}
+		}, 500);
 	}
 
 	function handleFileSelection(files) {
