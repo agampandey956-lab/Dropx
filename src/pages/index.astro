@@ -456,35 +456,16 @@ import Layout from '../layouts/Layout.astro';
 	}
 
 	function handleConnection(conn) {
-		conn.on('open', () => {
-			console.log('Connected to peer');
-			if (selectedFiles.length > 0) {
-				sharingStatus.innerText = 'Peer connected. Sending list...';
-				progressContainer.classList.remove('hidden');
-				conn.send({
-					type: 'manifest',
-					files: selectedFiles.map(f => ({
-						name: f.relativePath || f.webkitRelativePath || f.name,
-						size: f.size,
-						type: f.type || 'application/octet-stream'
-					}))
-				});
-			} else {
-				receivingStatus.innerText = 'Connected. Waiting for files...';
-			}
-		});
-
+		// Register data/close listeners FIRST so they are always bound
 		conn.on('data', (data) => {
 			if (data.type === 'manifest') {
 				incomingManifest = data.files;
 				currentTransferIndex = 0;
-				receiveInfo.innerText = `Manifest received (${incomingManifest.length} items)`;
-				receivingStatus.innerText = 'Ready to download.';
+				receiveInfo.innerText = `Receiving ${incomingManifest.length} items`;
+				receivingStatus.innerText = 'Downloading...';
 				downloadContainer.innerHTML = '';
 				downloadContainer.classList.remove('hidden');
 				progressContainer.classList.remove('hidden');
-				
-				// Request first item
 				conn.send({ type: 'pull-file', index: 0 });
 			} else if (data.type === 'pull-file') {
 				const idx = data.index;
@@ -505,7 +486,7 @@ import Layout from '../layouts/Layout.astro';
 				const meta = incomingManifest[idx];
 				const blob = new Blob([data.blob], { type: meta.type });
 				const url = URL.createObjectURL(blob);
-				
+
 				const fileRow = document.createElement('div');
 				fileRow.className = 'flex items-center justify-between p-sm bg-canvas-soft border border-hairline rounded-md text-body-sm mb-xs';
 				fileRow.innerHTML = `
@@ -514,22 +495,24 @@ import Layout from '../layouts/Layout.astro';
 				`;
 				downloadContainer.appendChild(fileRow);
 				downloadContainer.scrollTop = downloadContainer.scrollHeight;
-				
+
 				currentTransferIndex++;
 				const percent = (currentTransferIndex / incomingManifest.length) * 100;
 				progressBar.style.width = `${percent}%`;
 				receiveInfo.innerText = `Progress: ${currentTransferIndex}/${incomingManifest.length}`;
 				receivingStatus.innerText = percent === 100 ? 'Transfer Complete!' : 'Downloading...';
-				
+
 				if (currentTransferIndex < incomingManifest.length) {
 					conn.send({ type: 'pull-file', index: currentTransferIndex });
 				}
-				
-				// Auto-trigger save for the file
+
+				// Auto-trigger download
 				const autoLink = document.createElement('a');
 				autoLink.href = url;
 				autoLink.download = meta.name.split('/').pop();
+				document.body.appendChild(autoLink);
 				autoLink.click();
+				document.body.removeChild(autoLink);
 			}
 		});
 
@@ -539,6 +522,33 @@ import Layout from '../layouts/Layout.astro';
 				receivingStatus.innerText = 'Transfer interrupted.';
 			}
 		});
+
+		// Handle open - may already be open (race condition), so check conn.open first
+		const onOpen = () => {
+			console.log('Connection opened');
+			if (selectedFiles.length > 0) {
+				// Sender side: send manifest to receiver
+				sharingStatus.innerText = 'Peer connected. Sending files...';
+				progressContainer.classList.remove('hidden');
+				conn.send({
+					type: 'manifest',
+					files: selectedFiles.map(f => ({
+						name: f.relativePath || f.webkitRelativePath || f.name,
+						size: f.size,
+						type: f.type || 'application/octet-stream'
+					}))
+				});
+			} else {
+				// Receiver side: update status
+				receivingStatus.innerText = 'Connected. Waiting for files...';
+			}
+		};
+
+		if (conn.open) {
+			onOpen();
+		} else {
+			conn.on('open', onOpen);
+		}
 	}
 
 	function handleFileSelection(files) {
