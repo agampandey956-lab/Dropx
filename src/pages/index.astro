@@ -456,12 +456,11 @@ import Layout from '../layouts/Layout.astro';
 	}
 
 	function handleConnection(conn) {
-		const onOpen = () => {
+		conn.on('open', () => {
 			console.log('Connected to peer');
 			if (selectedFiles.length > 0) {
 				sharingStatus.innerText = 'Peer connected. Sending list...';
 				progressContainer.classList.remove('hidden');
-				
 				conn.send({
 					type: 'manifest',
 					files: selectedFiles.map(f => ({
@@ -471,15 +470,9 @@ import Layout from '../layouts/Layout.astro';
 					}))
 				});
 			} else {
-				receivingStatus.innerText = 'Waiting for sender to push files...';
+				receivingStatus.innerText = 'Connected. Waiting for files...';
 			}
-		};
-
-		if (conn.open) {
-			onOpen();
-		} else {
-			conn.on('open', onOpen);
-		}
+		});
 
 		conn.on('data', (data) => {
 			if (data.type === 'manifest') {
