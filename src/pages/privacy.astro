@@ -1,0 +1,74 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout 
+    title="Privacy Policy - DropX" 
+    description="Learn how DropX protects your privacy with our peer-to-peer file sharing technology. No files are stored on our servers, ensuring maximum security and anonymity."
+>
+    <div class="container py-24 md:py-32">
+        <div class="max-w-[800px] mx-auto prose dark:prose-invert">
+            <h1 class="text-display-md md:text-display-xl mb-8 text-ink">Privacy Policy</h1>
+            
+            <p class="text-body-md text-body mb-8">
+                Last updated: May 31, 2026
+            </p>
+
+            <section class="mb-12">
+                <h2 class="text-display-sm mb-4 text-ink">1. Our Commitment to Privacy</h2>
+                <p class="text-body-md text-body mb-4">
+                    At DropX, privacy is not just a feature; it is our foundation. Our <strong>peer-to-peer file sharing</strong> technology is designed to ensure that your data remains yours and yours alone.
+                </p>
+            </section>
+
+            <section class="mb-12">
+                <h2 class="text-display-sm mb-4 text-ink">2. No File Storage</h2>
+                <p class="text-body-md text-body mb-4">
+                    The most important aspect of DropX's privacy model is that <strong>we never store your files</strong>. When you use our <strong>secure file transfer</strong> service, files are sent directly from your browser to the recipient's browser via WebRTC. Your data never touches our servers.
+                </p>
+            </section>
+
+            <section class="mb-12">
+                <h2 class="text-display-sm mb-4 text-ink">3. Data We Collect</h2>
+                <p class="text-body-md text-body mb-4">
+                    To facilitate the <strong>online file transfer</strong> connection, we use a signaling server to help the two browsers "find" each other. This process involves:
+                </p>
+                <ul class="list-disc pl-6 text-body-md text-body space-y-2">
+                    <li>Temporary Peer IDs to identify connections.</li>
+                    <li>Technical metadata required for WebRTC handshaking.</li>
+                </ul>
+                <p class="text-body-md text-body mt-4">
+                    We do not track your IP address for longer than is necessary to establish a connection, and we do not use tracking cookies for marketing purposes.
+                </p>
+            </section>
+
+            <section class="mb-12">
+                <h2 class="text-display-sm mb-4 text-ink">4. End-to-End Encryption</h2>
+                <p class="text-body-md text-body mb-4">
+                    All <strong>file exchanges</strong> on DropX are protected by WebRTC's native encryption (DTLS/SCTP). This ensures <strong>encrypted file sharing</strong>, meaning that even if someone were to intercept the traffic between the two points, they would be unable to read the data.
+                </p>
+            </section>
+
+            <section class="mb-12">
+                <h2 class="text-display-sm mb-4 text-ink">5. Third-Party Services</h2>
+                <p class="text-body-md text-body mb-4">
+                    We may use analytics tools to understand how our <strong>file sharing service</strong> is being used. These tools collect anonymous usage data to help us improve the platform.
+                </p>
+            </section>
+
+            <section class="mb-12">
+                <h2 class="text-display-sm mb-4 text-ink">6. Changes to This Policy</h2>
+                <p class="text-body-md text-body mb-4">
+                    We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.
+                </p>
+            </section>
+
+            <section class="mb-12">
+                <h2 class="text-display-sm mb-4 text-ink">7. Contact Us</h2>
+                <p class="text-body-md text-body mb-4">
+                    If you have any questions about this Privacy Policy, please contact us at <a href="mailto:privacy@dropx.top" class="text-primary hover:underline">privacy@dropx.top</a>.
+                </p>
+            </section>
+        </div>
+    </div>
+</Layout>

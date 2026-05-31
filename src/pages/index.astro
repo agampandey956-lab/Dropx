@@ -1,11 +1,537 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
 ---
 
-<Layout>
-	<Welcome />
+<Layout title="DropX - Peer-to-peer file sharing">
+	<div class="relative min-h-[calc(100vh-64px)] flex flex-col">
+		<!-- Mesh Gradient Backdrop -->
+		<div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1400px] h-[600px] -z-10 opacity-30 dark:opacity-20 blur-[100px] pointer-events-none">
+			<div class="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-gradient-to-br from-gradient-develop-start to-gradient-develop-end animate-pulse"></div>
+			<div class="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-gradient-to-br from-gradient-preview-start to-gradient-preview-end animate-pulse" style="animation-delay: -2s"></div>
+		</div>
+
+		<section class="flex-grow container py-xl md:py-4xl flex flex-col items-center justify-center text-center">
+			<div class="max-w-[800px] w-full">
+				<h1 class="text-display-md md:text-display-xl mb-lg text-ink">
+					Share files. Peer-to-peer. <br/>
+					<span class="bg-clip-text text-transparent bg-gradient-to-r from-gradient-develop-start to-gradient-preview-start">No Cloud. No Limits.</span>
+				</h1>
+				<p class="text-body-md md:text-body-lg text-body mb-2xl md:mb-3xl max-w-[600px] mx-auto">
+					DropX uses WebRTC to send files directly between browsers. Your data never touches our servers.
+				</p>
+
+				<!-- Share Box -->
+				<div id="share-box" class="bg-canvas rounded-lg border border-hairline p-lg md:p-3xl shadow-soft-stack relative overflow-hidden group mx-auto w-full max-w-[600px]">
+					<!-- Progress Bar (hidden by default) -->
+					<div id="transfer-progress-container" class="absolute top-0 left-0 w-full h-1 bg-canvas-soft-2 hidden">
+						<div id="transfer-progress" class="h-full bg-gradient-to-r from-gradient-develop-start to-gradient-preview-end w-0 transition-all duration-300"></div>
+					</div>
+
+					<div id="state-ready" class="flex flex-col items-center">
+						<div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-canvas-soft flex items-center justify-center mb-lg md:mb-xl border border-hairline group-hover:scale-110 transition-transform duration-500">
+							<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-body">
+								<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+							</svg>
+						</div>
+						<h3 class="text-display-sm mb-sm text-ink">Select or drop a file</h3>
+						<p class="text-body-sm text-body mb-lg md:mb-xl">Any size. Directly from your device.</p>
+						<label class="px-xl h-[48px] rounded-pill bg-primary text-on-primary font-medium hover:opacity-90 transition-opacity flex items-center justify-center cursor-pointer">
+							Choose File
+							<input type="file" id="file-input" class="hidden" />
+						</label>
+					</div>
+
+					<div id="state-sharing" class="hidden flex flex-col items-center">
+						<div class="w-16 h-16 rounded-full bg-canvas-soft flex items-center justify-center mb-lg border border-hairline animate-pulse">
+							<div class="w-3 h-3 rounded-full bg-cyan animate-ping"></div>
+						</div>
+						<h3 class="text-display-sm mb-sm text-ink">Ready to share</h3>
+						<p id="file-info" class="text-body-sm text-body mb-xl font-mono truncate max-w-full px-lg">filename.zip (10 MB)</p>
+						
+						<div class="w-full bg-canvas-soft-2 border border-hairline rounded-md p-md flex items-center gap-md mb-lg">
+							<input type="text" id="share-link" readonly class="bg-transparent border-none text-body-sm font-mono flex-grow focus:outline-none text-ink" />
+							<button id="copy-link" class="p-xs hover:bg-canvas rounded transition-colors text-body">
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+							</button>
+						</div>
+						<p id="sharing-status" class="text-body-sm-strong text-primary mb-md">Waiting for recipient...</p>
+						<p class="text-caption text-mute">Send this link to the recipient. Keep this page open.</p>
+						<button id="cancel-share" class="mt-xl text-body-sm text-error hover:underline">Cancel</button>
+					</div>
+
+					<div id="state-receiving" class="hidden flex flex-col items-center">
+						<div class="w-16 h-16 rounded-full bg-canvas-soft flex items-center justify-center mb-lg border border-hairline">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-body animate-bounce">
+								<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+							</svg>
+						</div>
+						<h3 class="text-display-sm mb-sm text-ink">Incoming file</h3>
+						<p id="receive-info" class="text-body-sm text-body mb-xl font-mono text-ink">Waiting for data...</p>
+						<div id="receiving-status" class="text-body-sm-strong text-primary mb-xl">Connecting...</div>
+						<a id="download-btn" class="hidden px-xl h-[48px] rounded-pill bg-primary text-on-primary font-medium hover:opacity-90 transition-opacity flex items-center justify-center cursor-pointer">
+							Download File
+						</a>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<section id="features" class="container py-xl md:py-section">
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-lg md:gap-xl">
+				<div class="p-lg md:p-xl bg-canvas border border-hairline rounded-md">
+					<div class="w-10 h-10 rounded bg-canvas-soft flex items-center justify-center mb-lg border border-hairline text-ink">
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+					</div>
+					<h4 class="text-display-sm mb-sm text-ink">End-to-End Private</h4>
+					<p class="text-body-sm text-body">Your files are encrypted and sent directly. No one, not even us, can see your data.</p>
+				</div>
+				<div class="p-lg md:p-xl bg-canvas border border-hairline rounded-md">
+					<div class="w-10 h-10 rounded bg-canvas-soft flex items-center justify-center mb-lg border border-hairline text-ink">
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+					</div>
+					<h4 class="text-display-sm mb-sm text-ink">Blazing Fast</h4>
+					<p class="text-body-sm text-body">Transfers happen at your maximum network speed. No cloud throttles or upload waits.</p>
+				</div>
+				<div class="p-lg md:p-xl bg-canvas border border-hairline rounded-md">
+					<div class="w-10 h-10 rounded bg-canvas-soft flex items-center justify-center mb-lg border border-hairline text-ink">
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+					</div>
+					<h4 class="text-display-sm mb-sm text-ink text-left">No Size Limits</h4>
+					<p class="text-body-sm text-body">Share 1MB or 100GB. Since we don't store your files, we don't care how big they are.</p>
+				</div>
+			</div>
+		</section>
+
+		<!-- SEO Content Section -->
+		<section class="container py-2xl border-t border-hairline">
+			<details class="max-w-[900px] mx-auto group">
+				<summary class="text-display-sm text-ink cursor-pointer list-none flex items-center gap-2 hover:opacity-80 transition-opacity">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-open:rotate-180 transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
+					Learn More About DropX & Peer-to-Peer File Sharing
+				</summary>
+				<div class="mt-xl prose dark:prose-invert max-w-none">
+					<h2 class="text-display-md mb-xl text-ink">The Ultimate Peer-to-Peer File Sharing Experience</h2>
+					
+					<p class="text-body-md text-body mb-lg">
+						In today's digital age, <strong>file sharing</strong> has become an essential part of our daily lives. Whether you're a professional needing <strong>secure file sharing</strong> for sensitive documents or a casual user looking for <strong>online file sharing</strong> to send photos to friends, finding a reliable <strong>file sharing platform</strong> is crucial. DropX offers a revolutionary approach to <strong>online file transfer</strong> by utilizing <strong>peer to peer file sharing</strong> technology.
+					</p>
+
+					<h3 class="text-display-sm mb-md text-ink">Secure and Encrypted File Sharing</h3>
+					<p class="text-body-md text-body mb-lg">
+						Security is our top priority. Unlike traditional <strong>cloud file sharing</strong> services that store your data on their servers, DropX ensures <strong>encrypted file sharing</strong> by creating a direct link between the sender and the recipient. This <strong>secure file transfer</strong> method means your <strong>private file sharing</strong> remains truly private. With <strong>encrypted file transfer</strong>, you can <strong>share documents online</strong> or <strong>share videos online</strong> without worrying about unauthorized access.
+					</p>
+
+					<h3 class="text-display-sm mb-md text-ink">Fast File Transfer for Large Files</h3>
+					<p class="text-body-md text-body mb-lg">
+						Stop waiting for slow <strong>file upload</strong> speeds. DropX provides <strong>fast file transfer</strong> by bypassing intermediate servers. This <strong>high speed file transfer</strong> is perfect for <strong>large file transfer</strong> tasks, allowing you to <strong>send large files</strong> that other <strong>file hosting</strong> services might reject. Our <strong>unlimited file sharing</strong> capability means you can handle even the most demanding <strong>digital file sharing</strong> needs with ease.
+					</p>
+
+					<h3 class="text-display-sm mb-md text-ink">Simple and Easy File Transfer</h3>
+					<p class="text-body-md text-body mb-lg">
+						We believe in <strong>simple file sharing</strong>. Our <strong>web based file sharing</strong> tool features a <strong>drag and drop file upload</strong> interface, making it an <strong>easy file transfer</strong> solution for everyone. There's no need to install a <strong>file sharing app</strong>; DropX is a <strong>browser-based file sharing</strong> service that works across all devices. This <strong>cross-platform file sharing</strong> flexibility ensures seamless <strong>document sharing</strong> and <strong>media file sharing</strong>.
+					</p>
+
+					<h3 class="text-display-sm mb-md text-ink">Business and Team Collaboration</h3>
+					<p class="text-body-md text-body mb-lg">
+						For professionals, DropX serves as a powerful <strong>business file sharing</strong> and <strong>team file sharing</strong> tool. Whether you're looking for <strong>secure document sharing</strong> for <strong>enterprise file sharing</strong> or <strong>collaborative file sharing</strong> for your creative team, our <strong>data sharing platform</strong> is designed to scale. It functions as a <strong>file management system</strong> without the overhead of traditional <strong>online document management</strong> software, facilitating <strong>business document sharing</strong> and <strong>team file collaboration</strong> efficiently.
+					</p>
+
+					<h3 class="text-display-sm mb-md text-ink">Anonymous and Temporary File Sharing</h3>
+					<p class="text-body-md text-body mb-lg">
+						Sometimes you need <strong>anonymous file sharing</strong>. DropX provides a <strong>temporary file sharing</strong> solution where no accounts are required. Your <strong>file exchange</strong> is direct and ephemeral. If you need extra protection, you can even use <strong>password protected file sharing</strong>. Our <strong>file delivery service</strong> is built on the principles of <strong>secure data transfer</strong> and <strong>private file sharing</strong>.
+					</p>
+
+					<h3 class="text-display-sm mb-md text-ink">Why Choose DropX Over Cloud Storage?</h3>
+					<p class="text-body-md text-body mb-lg">
+						While <strong>cloud storage sharing</strong> and <strong>online storage platforms</strong> have their place, they often involve <strong>cloud file transfer</strong> delays and privacy concerns. DropX is a <strong>file sharing service</strong> that prioritizes <strong>instant file sharing</strong>. By using <strong>remote file sharing</strong> via WebRTC, we offer a <strong>data transfer service</strong> that is more secure than traditional <strong>secure cloud storage</strong>. It's the perfect <strong>file synchronization</strong> and <strong>file distribution</strong> alternative for those who value speed and privacy.
+					</p>
+
+					<p class="text-body-md text-body">
+						Whether you need to <strong>share photos online</strong>, <strong>upload and share files</strong>, or find a <strong>file backup and sharing</strong> alternative, DropX is your go-to <strong>file sharing software</strong>. Experience <strong>cloud collaboration</strong> without the cloud. Start your <strong>file access management</strong> journey with the most secure <strong>digital file sharing</strong> tool available today. <strong>Transfer files securely</strong> and enjoy <strong>browser-based file sharing</strong> at its finest.
+					</p>
+				</div>
+			</details>
+		</section>
+
+		<section id="faq" class="container py-2xl border-t border-hairline">
+			<div class="max-w-[900px] mx-auto">
+				<h2 class="text-display-md mb-xl text-ink">Frequently Asked Questions</h2>
+				
+				<div class="space-y-4">
+					<details class="p-lg bg-canvas border border-hairline rounded-md group">
+						<summary class="text-body-md-strong text-ink cursor-pointer list-none flex items-center justify-between">
+							How do I share files online for free?
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-open:rotate-180 transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
+						</summary>
+						<p class="text-body-sm text-body mt-lg">To <strong>share files online</strong> for free with DropX, simply select or drag your file into the share box. We provide an <strong>instant file sharing</strong> link that you can send to anyone for a direct, <strong>browser-based file sharing</strong> experience.</p>
+					</details>
+
+					<details class="p-lg bg-canvas border border-hairline rounded-md group">
+						<summary class="text-body-md-strong text-ink cursor-pointer list-none flex items-center justify-between">
+							What is the limit for large file transfers on DropX?
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-open:rotate-180 transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
+						</summary>
+						<p class="text-body-sm text-body mt-lg">Unlike <strong>cloud file sharing</strong> services, DropX has no hard <strong>file upload</strong> limits. Because we use <strong>peer to peer file sharing</strong>, you can perform a <strong>large file transfer</strong> of any size (even 100GB+) as long as your browser and device can handle it.</p>
+					</details>
+
+					<details class="p-lg bg-canvas border border-hairline rounded-md group">
+						<summary class="text-body-md-strong text-ink cursor-pointer list-none flex items-center justify-between">
+							Is browser-based file sharing safe?
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-open:rotate-180 transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
+						</summary>
+						<p class="text-body-sm text-body mt-lg">Yes, DropX provides <strong>secure file sharing</strong> by using WebRTC, which includes mandatory <strong>encrypted file sharing</strong>. Your <strong>private file sharing</strong> remains between you and the recipient; your data never touches our servers.</p>
+					</details>
+
+					<details class="p-lg bg-canvas border border-hairline rounded-md group">
+						<summary class="text-body-md-strong text-ink cursor-pointer list-none flex items-center justify-between">
+							Do I need an account for anonymous file sharing?
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-open:rotate-180 transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
+						</summary>
+						<p class="text-body-sm text-body mt-lg">No. DropX is designed for <strong>anonymous file sharing</strong>. You can <strong>share files online</strong> without creating an account or providing any personal information, ensuring a truly <strong>private file sharing</strong> session.</p>
+					</details>
+
+					<details class="p-lg bg-canvas border border-hairline rounded-md group">
+						<summary class="text-body-md-strong text-ink cursor-pointer list-none flex items-center justify-between">
+							How fast is the file transfer speed?
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-open:rotate-180 transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
+						</summary>
+						<p class="text-body-sm text-body mt-lg">Our <strong>fast file transfer</strong> is only limited by your internet connection. Since it is a <strong>secure file transfer</strong> happening directly between browsers, there are no middle-man servers to throttle your <strong>online file transfer</strong> speed.</p>
+					</details>
+
+					<details class="p-lg bg-canvas border border-hairline rounded-md group">
+						<summary class="text-body-md-strong text-ink cursor-pointer list-none flex items-center justify-between">
+							Can I use DropX for business file sharing?
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-open:rotate-180 transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
+						</summary>
+						<p class="text-body-sm text-body mt-lg">Absolutely. Many professionals use DropX for <strong>business file sharing</strong> and <strong>team file collaboration</strong>. It is an ideal <strong>data sharing platform</strong> for sending large assets like high-res videos or CAD files without the cost of <strong>enterprise file sharing</strong> tools.</p>
+					</details>
+
+					<details class="p-lg bg-canvas border border-hairline rounded-md group">
+						<summary class="text-body-md-strong text-ink cursor-pointer list-none flex items-center justify-between">
+							Does DropX support mobile file sharing?
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-open:rotate-180 transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
+						</summary>
+						<p class="text-body-sm text-body mt-lg">Yes, DropX is a <strong>cross-platform file sharing</strong> tool. You can <strong>share files online</strong> from your mobile browser to a desktop, or vice-versa, making <strong>digital file sharing</strong> easy across all your devices.</p>
+					</details>
+
+					<details class="p-lg bg-canvas border border-hairline rounded-md group">
+						<summary class="text-body-md-strong text-ink cursor-pointer list-none flex items-center justify-between">
+							How long do shared links last?
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-open:rotate-180 transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
+						</summary>
+						<p class="text-body-sm text-body mt-lg">As a <strong>temporary file sharing</strong> service, links are only active as long as the sender's browser window remains open. Once closed, the <strong>file transfer</strong> session ends, which is a key feature of our <strong>secure data transfer</strong> model.</p>
+					</details>
+
+					<details class="p-lg bg-canvas border border-hairline rounded-md group">
+						<summary class="text-body-md-strong text-ink cursor-pointer list-none flex items-center justify-between">
+							Is my data stored in the cloud?
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-open:rotate-180 transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
+						</summary>
+						<p class="text-body-sm text-body mt-lg">No. Unlike <strong>cloud storage sharing</strong>, your files are never uploaded to any server. This <strong>peer to peer file sharing</strong> approach eliminates the risks associated with <strong>cloud file transfer</strong> and storage leaks.</p>
+					</details>
+
+					<details class="p-lg bg-canvas border border-hairline rounded-md group">
+						<summary class="text-body-md-strong text-ink cursor-pointer list-none flex items-center justify-between">
+							What file types can I share?
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-open:rotate-180 transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
+						</summary>
+						<p class="text-body-sm text-body mt-lg">You can share any file type, including <strong>document sharing</strong> for PDFs/DOCs and <strong>media file sharing</strong> for large video or audio files. Our <strong>file sharing platform</strong> is completely format-agnostic.</p>
+					</details>
+				</div>
+			</div>
+		</section>
+
+		<script type="application/ld+json">
+		{
+			"@context": "https://schema.org",
+			"@type": "FAQPage",
+			"mainEntity": [
+				{
+					"@type": "Question",
+					"name": "How do I share files online for free?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "To share files online for free with DropX, simply select or drag your file into the share box. We provide an instant file sharing link that you can send to anyone for a direct, browser-based file sharing experience."
+					}
+				},
+				{
+					"@type": "Question",
+					"name": "What is the limit for large file transfers on DropX?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "Unlike cloud file sharing services, DropX has no hard file upload limits. Because we use peer to peer file sharing, you can perform a large file transfer of any size (even 100GB+) as long as your browser and device can handle it."
+					}
+				},
+				{
+					"@type": "Question",
+					"name": "Is browser-based file sharing safe?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "Yes, DropX provides secure file sharing by using WebRTC, which includes mandatory encrypted file sharing. Your private file sharing remains between you and the recipient; your data never touches our servers."
+					}
+				},
+				{
+					"@type": "Question",
+					"name": "Do I need an account for anonymous file sharing?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "No. DropX is designed for anonymous file sharing. You can share files online without creating an account or providing any personal information, ensuring a truly private file sharing session."
+					}
+				},
+				{
+					"@type": "Question",
+					"name": "How fast is the file transfer speed?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "Our fast file transfer is only limited by your internet connection. Since it is a secure file transfer happening directly between browsers, there are no middle-man servers to throttle your online file transfer speed."
+					}
+				},
+				{
+					"@type": "Question",
+					"name": "Can I use DropX for business file sharing?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "Absolutely. Many professionals use DropX for business file sharing and team file collaboration. It is an ideal data sharing platform for sending large assets like high-res videos or CAD files without the cost of enterprise file sharing tools."
+					}
+				},
+				{
+					"@type": "Question",
+					"name": "Does DropX support mobile file sharing?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "Yes, DropX is a cross-platform file sharing tool. You can share files online from your mobile browser to a desktop, or vice-versa, making digital file sharing easy across all your devices."
+					}
+				},
+				{
+					"@type": "Question",
+					"name": "How long do shared links last?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "As a temporary file sharing service, links are only active as long as the sender's browser window remains open. Once closed, the file transfer session ends, which is a key feature of our secure data transfer model."
+					}
+				},
+				{
+					"@type": "Question",
+					"name": "Is my data stored in the cloud?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "No. Unlike cloud storage sharing, your files are never uploaded to any server. This peer to peer file sharing approach eliminates the risks associated with cloud file transfer and storage leaks."
+					}
+				},
+				{
+					"@type": "Question",
+					"name": "What file types can I share?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "You can share any file type, including document sharing for PDFs/DOCs and media file sharing for large video or audio files. Our file sharing platform is completely format-agnostic."
+					}
+				}
+			]
+		}
+		</script>
+	</div>
 </Layout>
+
+<script>
+	import { Peer } from 'peerjs';
+
+	const stateReady = document.getElementById('state-ready');
+	const stateSharing = document.getElementById('state-sharing');
+	const stateReceiving = document.getElementById('state-receiving');
+	const fileInput = document.getElementById('file-input');
+	const fileInfo = document.getElementById('file-info');
+	const sharingStatus = document.getElementById('sharing-status');
+	const shareLink = document.getElementById('share-link');
+	const copyLink = document.getElementById('copy-link');
+	const cancelShare = document.getElementById('cancel-share');
+	const receiveInfo = document.getElementById('receive-info');
+	const receivingStatus = document.getElementById('receiving-status');
+	const downloadBtn = document.getElementById('download-btn');
+	const progressContainer = document.getElementById('transfer-progress-container');
+	const progressBar = document.getElementById('transfer-progress');
+
+	let peer = null;
+	let selectedFile = null;
+
+	function showState(state) {
+		stateReady.classList.add('hidden');
+		stateSharing.classList.add('hidden');
+		stateReceiving.classList.add('hidden');
+		
+		if (state === 'ready') stateReady.classList.remove('hidden');
+		if (state === 'sharing') stateSharing.classList.remove('hidden');
+		if (state === 'receiving') stateReceiving.classList.remove('hidden');
+	}
+
+	function initPeer() {
+		peer = new Peer();
+		
+		peer.on('open', (id) => {
+			console.log('My peer ID is: ' + id);
+			checkUrlForPeer();
+		});
+
+		peer.on('connection', (conn) => {
+			handleConnection(conn);
+		});
+
+		peer.on('error', (err) => {
+			console.error('Peer error:', err);
+			if (err.type === 'peer-unavailable') {
+				receivingStatus.innerText = 'Sender is offline or link is invalid.';
+			} else {
+				alert('P2P Error: ' + err.type);
+			}
+		});
+	}
+
+	function checkUrlForPeer() {
+		const urlParams = new URLSearchParams(window.location.search);
+		const targetId = urlParams.get('peer');
+		if (targetId) {
+			connectToPeer(targetId);
+		}
+	}
+
+	function connectToPeer(targetId) {
+		showState('receiving');
+		receivingStatus.innerText = 'Connecting to sender...';
+		
+		const conn = peer.connect(targetId);
+		handleConnection(conn);
+	}
+
+	function handleConnection(conn) {
+		conn.on('open', () => {
+			console.log('Connected to peer');
+			if (selectedFile) {
+				// Sender side: Send file metadata first
+				sharingStatus.innerText = 'Sending file...';
+				progressContainer.classList.remove('hidden');
+				
+				conn.send({
+					type: 'metadata',
+					name: selectedFile.name,
+					size: selectedFile.size,
+					fileType: selectedFile.type
+				});
+				
+				// Then send the file itself
+				setTimeout(() => {
+					conn.send(selectedFile);
+					progressBar.style.width = '100%';
+					sharingStatus.innerText = 'Transfer complete!';
+				}, 500);
+			} else {
+				// Receiver side
+				receivingStatus.innerText = 'Connected. Waiting for file...';
+			}
+		});
+
+		conn.on('data', (data) => {
+			if (data.type === 'metadata') {
+				receiveInfo.innerText = `${data.name} (${formatBytes(data.size)})`;
+				receivingStatus.innerText = 'Downloading...';
+				progressContainer.classList.remove('hidden');
+			} else if (data instanceof Blob || data instanceof ArrayBuffer) {
+				// We received the file!
+				const blob = data instanceof Blob ? data : new Blob([data]);
+				const url = URL.createObjectURL(blob);
+				
+				progressBar.style.width = '100%';
+				receivingStatus.innerText = 'File ready!';
+				
+				// Show download button
+				downloadBtn.classList.remove('hidden');
+				downloadBtn.href = url;
+				downloadBtn.download = receiveInfo.innerText.split(' (')[0] || 'downloaded-file';
+				
+				// Optional: Auto-click for convenience
+				downloadBtn.click();
+			}
+		});
+
+		conn.on('close', () => {
+			console.log('Connection closed');
+			if (!selectedFile) {
+				receivingStatus.innerText = 'Connection lost.';
+			}
+		});
+	}
+
+	fileInput.addEventListener('change', (e) => {
+		const file = e.target.files[0];
+		if (file) {
+			selectedFile = file;
+			fileInfo.innerText = `${file.name} (${formatBytes(file.size)})`;
+			
+			const url = new URL(window.location.href);
+			url.searchParams.set('peer', peer.id);
+			shareLink.value = url.toString();
+			sharingStatus.innerText = 'Waiting for recipient...';
+			
+			showState('sharing');
+		}
+	});
+
+	copyLink.addEventListener('click', () => {
+		navigator.clipboard.writeText(shareLink.value);
+		const originalIcon = copyLink.innerHTML;
+		copyLink.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-success"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+		setTimeout(() => {
+			copyLink.innerHTML = originalIcon;
+		}, 2000);
+	});
+
+	cancelShare.addEventListener('click', () => {
+		selectedFile = null;
+		showState('ready');
+		progressContainer.classList.add('hidden');
+		progressBar.style.width = '0%';
+		
+		// Remove peer from URL
+		const url = new URL(window.location.href);
+		url.searchParams.delete('peer');
+		window.history.pushState({}, '', url);
+	});
+
+	function formatBytes(bytes, decimals = 2) {
+		if (bytes === 0) return '0 Bytes';
+		const k = 1024;
+		const dm = decimals < 0 ? 0 : decimals;
+		const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+	}
+
+	// Initialize
+	initPeer();
+
+	// Drag & Drop
+	const shareBox = document.getElementById('share-box');
+	['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+		shareBox.addEventListener(eventName, (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+		}, false);
+	});
+
+	shareBox.addEventListener('drop', (e) => {
+		const dt = e.dataTransfer;
+		const file = dt.files[0];
+		if (file) {
+			fileInput.files = dt.files;
+			fileInput.dispatchEvent(new Event('change'));
+		}
+	});
+</script>
+
+<style>
+	.shadow-soft-stack {
+		box-shadow: 
+			0px 1px 1px rgba(0, 0, 0, 0.02),
+			0px 2px 2px rgba(0, 0, 0, 0.04),
+			0px 4px 4px rgba(0, 0, 0, 0.04),
+			0px 8px 8px rgba(0, 0, 0, 0.04);
+	}
+</style>

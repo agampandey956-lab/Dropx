@@ -1,0 +1,16 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="500 - Server Error | DropX">
+    <div class="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center text-center container">
+        <div class="w-24 h-24 bg-canvas-soft border border-hairline rounded-full flex items-center justify-center mb-8">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-error"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        </div>
+        <h1 class="text-display-xl mb-4 text-ink">500</h1>
+        <p class="text-body-lg text-body mb-8">Something went wrong on our end. Please try again later.</p>
+        <a href="/" class="px-xl h-[48px] rounded-pill bg-primary text-on-primary font-medium hover:opacity-90 transition-opacity flex items-center justify-center">
+            Back to Home
+        </a>
+    </div>
+</Layout>

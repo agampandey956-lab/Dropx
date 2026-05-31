@@ -1,0 +1,16 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="404 - Page Not Found | DropX">
+    <div class="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center text-center container">
+        <div class="w-24 h-24 bg-canvas-soft border border-hairline rounded-full flex items-center justify-center mb-8">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-body"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+        </div>
+        <h1 class="text-display-xl mb-4 text-ink">404</h1>
+        <p class="text-body-lg text-body mb-8">Oops! The page you're looking for doesn't exist.</p>
+        <a href="/" class="px-xl h-[48px] rounded-pill bg-primary text-on-primary font-medium hover:opacity-90 transition-opacity flex items-center justify-center">
+            Back to Home
+        </a>
+    </div>
+</Layout>

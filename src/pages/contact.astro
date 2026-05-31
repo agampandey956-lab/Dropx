@@ -1,0 +1,104 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout 
+    title="Contact Us - DropX" 
+    description="Have questions or feedback about DropX? Contact us today. We're here to help with your peer-to-peer file sharing needs and improve our service."
+>
+    <div class="container py-24 md:py-32">
+        <div class="max-w-[800px] mx-auto">
+            <h1 class="text-display-md md:text-display-xl mb-8 text-ink text-center">Contact Us</h1>
+            
+            <p class="text-body-md text-body mb-12 text-center">
+                Have questions, feedback, or need support? We're here to help. Reach out to the DropX team using the form below.
+            </p>
+
+            <div class="bg-canvas border border-hairline rounded-lg p-8 md:p-12 shadow-soft-stack">
+                <form id="contact-form" class="space-y-6">
+                    <div id="form-content" class="space-y-6">
+                        <div>
+                            <label for="name" class="block text-body-sm-strong text-ink mb-2">Full Name</label>
+                            <input type="text" id="name" name="name" placeholder="John Doe" class="w-full px-4 py-3 bg-canvas-soft border border-hairline rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-ink" required>
+                        </div>
+                        
+                        <div>
+                            <label for="email" class="block text-body-sm-strong text-ink mb-2">Email Address</label>
+                            <input type="email" id="email" name="email" placeholder="john@example.com" class="w-full px-4 py-3 bg-canvas-soft border border-hairline rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-ink" required>
+                        </div>
+                        
+                        <div>
+                            <label for="subject" class="block text-body-sm-strong text-ink mb-2">Subject</label>
+                            <select id="subject" name="subject" class="w-full px-4 py-3 bg-canvas-soft border border-hairline rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-ink">
+                                <option value="support">General Support</option>
+                                <option value="feedback">Feedback & Suggestions</option>
+                                <option value="business">Business Inquiries</option>
+                                <option value="legal">Legal & Privacy</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="message" class="block text-body-sm-strong text-ink mb-2">Message</label>
+                            <textarea id="message" name="message" rows="5" placeholder="How can we help you?" class="w-full px-4 py-3 bg-canvas-soft border border-hairline rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-ink resize-none" required></textarea>
+                        </div>
+                        
+                        <div>
+                            <button type="submit" class="w-full h-[56px] rounded-pill bg-primary text-on-primary font-medium hover:opacity-90 transition-all flex items-center justify-center">
+                                Send Message
+                            </button>
+                        </div>
+                    </div>
+                    <div id="success-message" class="hidden text-center py-12">
+                        <div class="w-20 h-20 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <h2 class="text-display-sm mb-4 text-ink">Thanks for the feedback!</h2>
+                        <p class="text-body-md text-body">We will contact you soon!</p>
+                        <button type="button" onclick="window.location.reload()" class="mt-8 text-primary hover:underline">Send another message</button>
+                    </div>
+                </form>
+            </div>
+
+<script is:inline>
+    const form = document.getElementById('contact-form');
+    const formContent = document.getElementById('form-content');
+    const successMessage = document.getElementById('success-message');
+
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            formContent.classList.add('hidden');
+            successMessage.classList.remove('hidden');
+            window.scrollTo({ top: form.offsetTop - 100, behavior: 'smooth' });
+        });
+    }
+</script>
+
+            <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <div>
+                    <h3 class="text-body-md-strong text-ink mb-2">Email Us</h3>
+                    <p class="text-body-sm text-body"><a href="mailto:support@dropx.top" class="hover:text-primary transition-colors">support@dropx.top</a></p>
+                </div>
+                <div>
+                    <h3 class="text-body-md-strong text-ink mb-2">Our Office</h3>
+                    <p class="text-body-sm text-body">Distributed Team<br/>Global Presence</p>
+                </div>
+                <div>
+                    <h3 class="text-body-md-strong text-ink mb-2">Social</h3>
+                    <p class="text-body-sm text-body"><a href="#" class="hover:text-primary transition-colors">Twitter</a> &bull; <a href="#" class="hover:text-primary transition-colors">GitHub</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</Layout>
+
+<style>
+	.shadow-soft-stack {
+		box-shadow: 
+			0px 1px 1px rgba(0, 0, 0, 0.02),
+			0px 2px 2px rgba(0, 0, 0, 0.04),
+			0px 4px 4px rgba(0, 0, 0, 0.04),
+			0px 8px 8px rgba(0, 0, 0, 0.04);
+	}
+</style>
