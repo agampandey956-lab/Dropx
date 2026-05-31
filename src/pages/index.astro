@@ -456,7 +456,7 @@ import Layout from '../layouts/Layout.astro';
 	}
 
 	function handleConnection(conn) {
-		conn.on('open', () => {
+		const onOpen = () => {
 			console.log('Connected to peer');
 			if (selectedFiles.length > 0) {
 				sharingStatus.innerText = 'Peer connected. Sending list...';
@@ -473,7 +473,13 @@ import Layout from '../layouts/Layout.astro';
 			} else {
 				receivingStatus.innerText = 'Waiting for sender to push files...';
 			}
-		});
+		};
+
+		if (conn.open) {
+			onOpen();
+		} else {
+			conn.on('open', onOpen);
+		}
 
 		conn.on('data', (data) => {
 			if (data.type === 'manifest') {
