@@ -415,9 +415,20 @@ import Layout from '../layouts/Layout.astro';
 
 	function initPeer() {
 		console.log('Initializing Peer...');
+		// More robust list of STUN servers
+		const iceServers = [
+			{ urls: 'stun:stun.l.google.com:19302' },
+			{ urls: 'stun:stun1.l.google.com:19302' },
+			{ urls: 'stun:stun2.l.google.com:19302' },
+			{ urls: 'stun:stun3.l.google.com:19302' },
+			{ urls: 'stun:stun4.l.google.com:19302' },
+			{ urls: 'stun:global.stun.twilio.com:3478?transport=udp' },
+			{ urls: 'stun:stun.services.mozilla.com' }
+		];
+
 		peer = new Peer({
-			config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478?transport=udp' }] },
-			debug: 1
+			config: { 'iceServers': iceServers },
+			debug: 2 // Increased debug level for better troubleshooting
 		});
 
 		peer.on('open', (id) => {
@@ -433,12 +444,24 @@ import Layout from '../layouts/Layout.astro';
 
 		peer.on('error', (err) => {
 			console.error('Peer error:', err);
+			let errorMsg = 'An unexpected error occurred.';
+			
 			if (err.type === 'peer-unavailable') {
-				receivingStatus.innerText = 'Sender is offline or link is invalid.';
+				errorMsg = 'Sender is offline or link is invalid.';
 			} else if (err.type === 'browser-incompatible') {
-				alert('Your browser does not support P2P file sharing.');
-			} else if (err.type !== 'disconnected') {
-				console.error('P2P Error: ' + err.type);
+				errorMsg = 'Your browser does not support P2P file sharing.';
+			} else if (err.type === 'network') {
+				errorMsg = 'Network error. Please check your connection.';
+			} else if (err.type === 'server-error') {
+				errorMsg = 'Signaling server error. Retrying...';
+			} else if (err.type === 'disconnected') {
+				return; // Handled by disconnected event
+			}
+
+			if (stateReceiving.classList.contains('hidden')) {
+				sharingStatus.innerText = errorMsg;
+			} else {
+				receivingStatus.innerText = errorMsg;
 			}
 		});
 
@@ -452,6 +475,7 @@ import Layout from '../layouts/Layout.astro';
 		const urlParams = new URLSearchParams(window.location.search);
 		const targetId = urlParams.get('peer');
 		if (targetId) {
+			console.log('Target peer ID found in URL:', targetId);
 			connectToPeer(targetId);
 		}
 	}
@@ -459,15 +483,20 @@ import Layout from '../layouts/Layout.astro';
 	function connectToPeer(targetId) {
 		showState('receiving');
 		receivingStatus.innerText = 'Connecting to peer...';
+		console.log('Attempting to connect to:', targetId);
 
-		// Using default connection options
-		const conn = peer.connect(targetId);
+		// Explicit options for connection
+		const conn = peer.connect(targetId, {
+			reliable: true,
+			serialization: 'binary'
+		});
 		activeConnection = conn;
 		handleConnection(conn);
 	}
 
 	function handleConnection(conn) {
 		let openHandled = false;
+		let timeoutId = null;
 
 		const setupDataListeners = () => {
 			conn.on('data', (data) => {
@@ -520,6 +549,7 @@ import Layout from '../layouts/Layout.astro';
 						conn.send({ type: 'pull-file', index: currentTransferIndex });
 					}
 
+					// Auto-download for single files or better UX
 					const autoLink = document.createElement('a');
 					autoLink.href = url;
 					autoLink.download = meta.name.split('/').pop();
@@ -540,7 +570,7 @@ import Layout from '../layouts/Layout.astro';
 
 			conn.on('error', (err) => {
 				console.error('Connection error:', err);
-				const msg = 'Connection error. Please try again.';
+				const msg = 'Connection failed. Try refreshing both pages.';
 				if (selectedFiles.length > 0) sharingStatus.innerText = msg;
 				else receivingStatus.innerText = msg;
 			});
@@ -549,7 +579,9 @@ import Layout from '../layouts/Layout.astro';
 		const handleOpen = () => {
 			if (openHandled) return;
 			openHandled = true;
-			console.log('Connection opened');
+			if (timeoutId) clearTimeout(timeoutId);
+			
+			console.log('Connection opened with:', conn.peer);
 			setupDataListeners();
 
 			if (selectedFiles.length > 0) {
@@ -570,19 +602,17 @@ import Layout from '../layouts/Layout.astro';
 
 		conn.on('open', handleOpen);
 
-		// Fallback for cases where 'open' event is missed
-		setTimeout(() => {
-			if (conn.open && !openHandled) {
+		// Timeout handling
+		timeoutId = setTimeout(() => {
+			if (conn.open) {
 				handleOpen();
 			} else if (!openHandled) {
-				// If still not open after 10 seconds, show error
-				setTimeout(() => {
-					if (!openHandled) {
-						receivingStatus.innerText = 'Connection timed out. Retrying...';
-					}
-				}, 10000);
+				console.warn('Connection attempt timed out');
+				const timeoutMsg = 'Connection timed out. Both users must keep the page open and avoid restrictive firewalls.';
+				if (selectedFiles.length > 0) sharingStatus.innerText = timeoutMsg;
+				else receivingStatus.innerText = timeoutMsg;
 			}
-		}, 500);
+		}, 15000); // 15 seconds timeout
 	}
 
 	function handleFileSelection(files) {
