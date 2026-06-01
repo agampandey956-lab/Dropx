@@ -414,16 +414,19 @@ import Layout from '../layouts/Layout.astro';
 	}
 
 	function initPeer() {
+		console.log('Initializing Peer...');
 		peer = new Peer({
-			config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478?transport=udp' }] }
+			config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478?transport=udp' }] },
+			debug: 1
 		});
-		
+
 		peer.on('open', (id) => {
 			console.log('My peer ID is: ' + id);
 			checkUrlForPeer();
 		});
 
 		peer.on('connection', (conn) => {
+			console.log('Incoming connection from:', conn.peer);
 			activeConnection = conn;
 			handleConnection(conn);
 		});
@@ -432,9 +435,16 @@ import Layout from '../layouts/Layout.astro';
 			console.error('Peer error:', err);
 			if (err.type === 'peer-unavailable') {
 				receivingStatus.innerText = 'Sender is offline or link is invalid.';
+			} else if (err.type === 'browser-incompatible') {
+				alert('Your browser does not support P2P file sharing.');
 			} else if (err.type !== 'disconnected') {
-				alert('P2P Error: ' + err.type);
+				console.error('P2P Error: ' + err.type);
 			}
+		});
+
+		peer.on('disconnected', () => {
+			console.log('Peer disconnected from signaling server. Reconnecting...');
+			peer.reconnect();
 		});
 	}
 
@@ -448,16 +458,20 @@ import Layout from '../layouts/Layout.astro';
 
 	function connectToPeer(targetId) {
 		showState('receiving');
-		receivingStatus.innerText = 'Initializing connection...';
-		
-		const conn = peer.connect(targetId, { reliable: true });
+		receivingStatus.innerText = 'Connecting to peer...';
+
+		// Using default connection options
+		const conn = peer.connect(targetId);
 		activeConnection = conn;
 		handleConnection(conn);
 	}
 
 	function handleConnection(conn) {
+		let openHandled = false;
+
 		const setupDataListeners = () => {
 			conn.on('data', (data) => {
+				console.log('Data received:', data.type);
 				if (data.type === 'manifest') {
 					incomingManifest = data.files;
 					currentTransferIndex = 0;
@@ -519,14 +533,25 @@ import Layout from '../layouts/Layout.astro';
 				console.log('Connection closed');
 				if (incomingManifest.length > 0 && currentTransferIndex < incomingManifest.length) {
 					receivingStatus.innerText = 'Transfer interrupted.';
+				} else if (selectedFiles.length > 0) {
+					sharingStatus.innerText = 'Peer disconnected.';
 				}
+			});
+
+			conn.on('error', (err) => {
+				console.error('Connection error:', err);
+				const msg = 'Connection error. Please try again.';
+				if (selectedFiles.length > 0) sharingStatus.innerText = msg;
+				else receivingStatus.innerText = msg;
 			});
 		};
 
 		const handleOpen = () => {
+			if (openHandled) return;
+			openHandled = true;
 			console.log('Connection opened');
 			setupDataListeners();
-			
+
 			if (selectedFiles.length > 0) {
 				sharingStatus.innerText = 'Peer connected. Sending files...';
 				progressContainer.classList.remove('hidden');
@@ -543,14 +568,19 @@ import Layout from '../layouts/Layout.astro';
 			}
 		};
 
-		// Try listening to open event first, this is the most reliable way in PeerJS
 		conn.on('open', handleOpen);
-		
-		// Fallback in case conn is already fully open and open event missed
+
+		// Fallback for cases where 'open' event is missed
 		setTimeout(() => {
-			if (conn.open && !conn._openHandled) {
-				conn._openHandled = true;
+			if (conn.open && !openHandled) {
 				handleOpen();
+			} else if (!openHandled) {
+				// If still not open after 10 seconds, show error
+				setTimeout(() => {
+					if (!openHandled) {
+						receivingStatus.innerText = 'Connection timed out. Retrying...';
+					}
+				}, 10000);
 			}
 		}, 500);
 	}
@@ -609,6 +639,10 @@ import Layout from '../layouts/Layout.astro';
 
 	startShare.addEventListener('click', () => {
 		if (selectedFiles.length > 0) {
+			if (!peer || !peer.id) {
+				alert('P2P system is still initializing. Please try again in a few seconds.');
+				return;
+			}
 			const totalSize = selectedFiles.reduce((acc, f) => acc + f.size, 0);
 			fileInfo.innerText = `${selectedFiles.length} items (${formatBytes(totalSize)})`;
 			
